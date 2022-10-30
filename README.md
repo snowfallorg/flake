@@ -45,7 +45,7 @@ You can install this package by adding it as an input to your Nix Flake.
 			inputs.nixpkgs.follows = "nixpkgs";
 		};
 
-		flake = {
+		snowfall-flake = {
 			url = "github:snowfallorg/flake";
 			# Frost requires some packages that aren't on 22.05, but are available on unstable.
 			inputs.nixpkgs.follows = "unstable";
@@ -59,12 +59,25 @@ You can install this package by adding it as an input to your Nix Flake.
 
 			overlays = with inputs; [
 				# Use the overlay provided by this flake.
-				flake.overlay
+				snowfall-flake.overlay
 
 				# There is also a named overlay, though the output is the same.
-				flake.overlays."nixpkgs/snowfallorg"
+				snowfall-flake.overlays."nixpkgs/flake"
 			];
 		};
+}
+```
+
+If you've added the overlay from this flake, then in your system configuration you
+can add the `snowfallorg.flake` package.
+
+```nix
+{ pkgs }:
+
+{
+	environment.systemPackages = with pkgs; [
+		snowfallorg.flake
+	];
 }
 ```
 
