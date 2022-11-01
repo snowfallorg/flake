@@ -3,14 +3,12 @@
 let
   bool-to-string = value: if value then "true" else "false";
   patched-script = substituteAll {
-    src = ./filter-flakes.sh;
+    src = ./filter-flake.sh;
   };
 in
 writeShellApplication {
-  name = "filter-flakes";
+  name = "filter-flake";
   text = builtins.readFile patched-script;
   checkPhase = "";
-  runtimeInputs = [
-    snowfallorg.filter-flake
-  ];
+  runtimeInputs = [ ];
 }

@@ -205,28 +205,6 @@ get_flake_outputs() {
 		echo "$outputs"
 }
 
-# Usage: get_registry_flakes
-get_registry_flakes() {
-	local full_output=$(nix registry list)
-
-	local global_flakes=()
-
-	while IFS= read -r line; do
-		parts=($(split "$line" " "))
-
-		local type=${parts[0]}
-		local registry_uri=${parts[1]}
-		local flake_uri=${parts[2]}
-
-		if [[ "$type" != "system" && "$flake_uri" != path:/nix/store*  ]]; then
-			global_flakes+=("${flake_uri}")
-			# global_flakes+=("${registry_uri}")
-		fi
-	done <<< "$full_output"
-
-	echo "${global_flakes[*]}"
-}
-
 # Usage: replace_each <pattern> <text> <data>
 replace_each() {
 	local results=()
@@ -240,36 +218,6 @@ replace_each() {
 	done
 
 	echo "${results[*]}"
-}
-
-# Usage: filter_template_flakes [...flake-uri]
-filter_template_flakes() {
-	local template_flakes=()
-	
-	while [[ $# > 0 ]]; do
-		# @NOTE(jakehamilton): We redirect stderr to /dev/null due to Nix complaining about
-		# lock files on some flakes. The `nix eval` command does not provide a way to resolve
-		# this, so we have to ignore errors here unfortunately.
-		local has_template=$(nix eval --impure --raw --expr "\
-			let
-				flake = builtins.getFlake \"$1\";
-				templateNames = builtins.attrNames flake.templates;
-				totalTemplates = builtins.length templateNames;
-			in
-			if flake ? templates && totalTemplates != 0 then
-				\"true\"
-			else
-				\"false\"
-		" 2>/dev/null)
-
-		if [[ "$has_template" == true ]]; then
-			template_flakes+=("$1")
-		fi
-
-		shift
-	done
-
-	echo "${template_flakes[*]}"
 }
 
 # Usage: privileged <command>
@@ -318,9 +266,19 @@ flake_new() {
 	fi
 
 	if [[ ${opt_pick} == true ]]; then
-		local registry_flakes=($(get_registry_flakes))
+		local registry_flakes=($(gum spin \
+			--title "Getting flakes from registry" \
+			--spinner.foreground="4" \
+			--show-output \
+			-- get-registry-flakes \
+		))
 
-		local template_flakes=($(filter-flakes templates "${registry_flakes[*]}"))
+		local template_flakes=($(gum spin \
+			--title "Finding templates" \
+			--spinner.foreground="4" \
+			--show-output \
+			-- filter-flakes templates "${registry_flakes[*]}" \
+		))
 
 		log_debug "found ${#template_flakes[@]} template flakes"
 
@@ -375,18 +333,19 @@ flake_init() {
 	fi
 
 	if [[ ${opt_pick} == true ]]; then
-		local registry_flakes=($(get_registry_flakes))
+		local registry_flakes=($(gum spin \
+			--title "Getting flakes from registry" \
+			--spinner.foreground="4" \
+			--show-output \
+			-- get-registry-flakes \
+		))
 
-		# @FIXME(jakehamilton): The initial pull and eval for flakes can take some time depending
-		# on what the user has in their registry. The `gum spin` command currently doesn't output
-		# the wrapped command's output, so this is disabled.
-		#
-		# local template_flakes=($(gum spin \
-		# 	--title "Finding Templates" \
-		# 	--spinner.foreground="4" \
-		# 	-- filter-flakes "${registry_flakes[*]}" \
-		# ))
-		local template_flakes=($(filter-flakes templates "${registry_flakes[*]}"))
+		local template_flakes=($(gum spin \
+			--title "Finding templates" \
+			--spinner.foreground="4" \
+			--show-output \
+			-- filter-flakes templates "${registry_flakes[*]}" \
+		))
 
 		log_debug "found ${#template_flakes[@]} template flakes"
 

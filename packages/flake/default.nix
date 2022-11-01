@@ -1,4 +1,4 @@
-{ lib, writeShellApplication, gum, glow, substituteAll, stdenvNoCC, snowfallorg, ... }:
+{ lib, writeShellApplication, gum, substituteAll, stdenvNoCC, snowfallorg, ... }:
 
 let
   bool-to-string = value: if value then "true" else "false";
@@ -16,5 +16,6 @@ writeShellApplication {
   runtimeInputs = [
     gum
     snowfallorg.filter-flakes
+    snowfallorg.get-registry-flakes
   ];
 }
