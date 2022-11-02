@@ -181,8 +181,8 @@ require_flake_nix() {
 	fi
 }
 
-# Usage: get_flake_outputs <output> <flake-uri>
-get_flake_outputs() {
+# Usage: get_flake_attributes <output> <flake-uri>
+get_flake_attributes() {
 		local outputs=""
 
 		# @NOTE(jakehamilton): Some flakes may not contain the values we're looking for. In
@@ -215,6 +215,17 @@ replace_each() {
 		else
 			results+=("$item")
 		fi
+	done
+
+	echo "${results[*]}"
+}
+
+# Usage: prefix_each <prefix> <data>
+prefix_each() {
+	local results=()
+
+	for item in $2; do
+		results+=("$1 $item")
 	done
 
 	echo "${results[*]}"
@@ -284,15 +295,15 @@ flake_new() {
 
 		local template_choices=()
 
-		template_choices+=($(get_flake_outputs templates "github:NixOS/templates"))
-		template_choices+=($(get_flake_outputs templates "github:snowfallorg/templates"))
+		template_choices+=($(get_flake_attributes templates "github:NixOS/templates"))
+		template_choices+=($(get_flake_attributes templates "github:snowfallorg/templates"))
 
 		for flake in ${template_flakes[*]}; do
 			if [ "$flake" == "github:NixOS/templates" ] || [ "$flake" == "github:snowfallorg/templates" ]; then
 				continue
 			fi
 
-			template_choices+=($(get_flake_outputs templates "$flake"))
+			template_choices+=($(get_flake_attributes templates "$flake"))
 		done
 
 		log_debug "found ${#template_choices[@]} templates"
@@ -351,15 +362,15 @@ flake_init() {
 
 		local template_choices=()
 
-		template_choices+=($(get_flake_outputs templates "github:snowfallorg/templates"))
-		template_choices+=($(get_flake_outputs templates "github:NixOS/templates"))
+		template_choices+=($(get_flake_attributes templates "github:snowfallorg/templates"))
+		template_choices+=($(get_flake_attributes templates "github:NixOS/templates"))
 
 		for flake in ${template_flakes[*]}; do
 			if [ "$flake" == "github:NixOS/templates" ] || [ "$flake" == "github:snowfallorg/templates" ]; then
 				continue
 			fi
 
-			template_choices+=($(get_flake_outputs templates "$flake"))
+			template_choices+=($(get_flake_attributes templates "$flake"))
 		done
 
 		log_debug "found ${#template_choices[@]} templates"
@@ -417,7 +428,7 @@ flake_switch() {
 			target="darwin"
 		fi
 
-		local raw_systems_choices=($(get_flake_outputs "${target}Configurations" "$flake_uri"))
+		local raw_systems_choices=($(get_flake_attributes "${target}Configurations" "$flake_uri"))
 		local systems_choices=($(replace_each "path:$(pwd)" "." "${raw_systems_choices[*]}"))
 
 		if [[ ${#systems_choices[@]} == 0 ]]; then
@@ -482,7 +493,7 @@ flake_build() {
 			log_fatal "${text_bold}flake build --pick${text_reset} called with invalid flake uri: $flake_uri"
 		fi
 
-		local raw_packages_choices=($(get_flake_outputs packages "$flake_uri"))
+		local raw_packages_choices=($(get_flake_attributes packages "$flake_uri"))
 		local packages_choices=($(replace_each "path:$(pwd)" "." "${raw_packages_choices[*]}"))
 
 		if [[ ${#packages_choices[@]} == 0 ]]; then
@@ -558,7 +569,7 @@ flake_build_system() {
 			log_fatal "${text_bold}flake ${positional_args[0]} --pick${text_reset} called with invalid flake uri: $flake_uri"
 		fi
 
-		local raw_systems_choices=($(get_flake_outputs "${target}Configurations" "$flake_uri"))
+		local raw_systems_choices=($(get_flake_attributes "${target}Configurations" "$flake_uri"))
 		local systems_choices=($(replace_each "path:$(pwd)#" ".#${target}Configurations." "${raw_systems_choices[*]}"))
 
 		if [[ ${#systems_choices[@]} == 0 ]]; then
@@ -668,7 +679,7 @@ flake_dev() {
 			log_fatal "${text_bold}flake build --pick${text_reset} called with invalid flake uri: $flake_uri"
 		fi
 
-		local raw_shells_choices=($(get_flake_outputs devShells "$flake_uri"))
+		local raw_shells_choices=($(get_flake_attributes devShells "$flake_uri"))
 		local shells_choices=($(replace_each "path:$(pwd)" "." "${raw_shells_choices[*]}"))
 
 		if [[ ${#shells_choices[@]} == 0 ]]; then
@@ -730,7 +741,7 @@ flake_run() {
 			log_fatal "${text_bold}flake build --pick${text_reset} called with invalid flake uri: $flake_uri"
 		fi
 
-		local raw_apps_choices=($(get_flake_outputs apps "$flake_uri"))
+		local raw_apps_choices=($(get_flake_attributes apps "$flake_uri"))
 		local apps_choices=($(replace_each "path:$(pwd)" "." "${raw_apps_choices[*]}"))
 
 		if [[ ${#apps_choices[@]} == 0 ]]; then
@@ -766,6 +777,56 @@ flake_run() {
 				require_flake_nix
 				nix run ".#${shell_name}" -- ${passthrough_args[*]}
 			fi
+		fi
+	fi
+}
+
+flake_update() {
+	if [[ $opt_help == true ]]; then
+		show_help update
+		exit 0
+	fi
+
+	require_flake_nix
+
+	flake_uri="path:$(pwd)"
+
+	if [[ ${opt_pick} == true ]]; then
+		if [[ ${#positional_args[@]} > 1 ]]; then
+			log_fatal "${text_bold}flake update --pick${text_reset} cannot be called with input names."
+		fi
+
+		local raw_inputs_choices=($(get_flake_attributes inputs "$flake_uri"))
+		local inputs_choices=($(replace_each "$flake_uri#" "" "${raw_inputs_choices[*]}"))
+
+		if [[ ${#inputs_choices[@]} == 0 ]]; then
+			log_fatal "Could not find any inputs in flake: ${flake_uri}"
+		fi
+
+		log_info "Select inputs to update:"
+		local inputs=$(gum choose \
+			--height=15 \
+			--cursor.foreground="4" \
+			--item.foreground="7" \
+			--selected.foreground="4" \
+			--no-limit \
+			${inputs_choices[*]} \
+		)
+
+		if [[ -z ${inputs} ]]; then
+			log_fatal "No inputs selected"
+		fi
+
+		rewrite_line "$(log_info "Select inputs to update: ${text_fg_blue}${inputs//$'\n'/, }${text_reset}")"
+
+		nix flake lock $(prefix_each "--update-input" "${inputs}")
+	else
+		if [[ ${#positional_args[@]} == 1 ]]; then
+			nix flake update
+		else
+			local inputs=("${positional_args[@]:1}")
+
+			nix flake lock $(prefix_each "--update-input" "${inputs[*]}")
 		fi
 	fi
 }
@@ -841,6 +902,10 @@ case ${positional_args[0]} in
 	run)
 		log_debug "Running subcommand: ${text_bold}flake_run${text_reset}"
 		flake_run
+		;;
+	update)
+		log_debug "Running subcommand: ${text_bold}flake_update${text_reset}"
+		flake_update
 		;;
 	*)
 		log_fatal "Unknown subcommand: ${text_bold}${positional_args[0]}${text_reset}"
