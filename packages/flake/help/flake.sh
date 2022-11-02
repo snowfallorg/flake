@@ -13,10 +13,11 @@ ${text_bold}COMMANDS${text_reset}
 
   new                       Create a new flake in a new directory
   init                      Create a new flake in an existing directory
+  dev                       Start a development shell
   run                       Run an app
   build                     Build a package
-  dev                       Start a development shell
   switch                    Switch system configuration
+  update                    Update flake inputs
   build-<target>            Build a target system, see ${text_bold}flake build-system --help${text_reset}
 
 ${text_bold}OPTIONS${text_reset}
