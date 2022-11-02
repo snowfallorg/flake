@@ -113,6 +113,27 @@ flake init --template github:snowfallorg/templates#package
 flake init --pick
 ```
 
+### `flake dev`
+
+Run development shells.
+
+```bash
+# Open the default development shell of the flake in the current directory.
+flake dev
+
+# Open a specific development shell of the flake in the current directory.
+flake dev my-shell
+
+# Open a development shell from a specific flake.
+flake dev github:snowfall/dotbox#dotbox
+
+# Pick a development shell from the current directory.
+flake dev --pick
+
+# Pick a development shell from a specific flake.
+flake dev github:snowfall/dotbox --pick
+```
+
 ### `flake run`
 
 Run apps from Nix Flakes.
@@ -155,27 +176,6 @@ flake build --pick
 flake build github:snowfall/dotbox --pick
 ```
 
-### `flake dev`
-
-Run development shells.
-
-```bash
-# Open the default development shell of the flake in the current directory.
-flake dev
-
-# Open a specific development shell of the flake in the current directory.
-flake dev my-shell
-
-# Open a development shell from a specific flake.
-flake dev github:snowfall/dotbox#dotbox
-
-# Pick a development shell from the current directory.
-flake dev --pick
-
-# Pick a development shell from a specific flake.
-flake dev github:snowfall/dotbox --pick
-```
-
 ### `flake switch`
 
 Rebuild and switch system configuration with support for both NixOS and nix-darwin.
@@ -195,6 +195,21 @@ flake switch github:jakehamilton/config#bismuth
 
 # Pick configuration from a specific flake.
 flake switch github:jakehamilton/config --pick
+```
+
+### `flake update`
+
+Update a Nix Flake's inputs.
+
+```bash
+# Update all flake inputs.
+flake update
+
+# Update one or more specific inputs.
+flake update nixpkgs snowfall-lib
+
+# Pick inputs to update from a list.
+flake update --pick
 ```
 
 ### `flake build-<target>`
