@@ -7,6 +7,6 @@ split() {
 	printf '%s\n' "${arr[@]}"
 }
 
-result=$(echo "$(split "$@" " ")" | xargs -I {} bash -c "filter-flake ${target} {}")
+result=$(echo "$(split "$@" " ")" | xargs -P 10 -I {} bash -c "filter-flake ${target} {}")
 
 echo "$result"
