@@ -884,8 +884,8 @@ case ${positional_args[0]} in
 	build-qcow|\
 	build-raw|\
 	build-raw-efi|\
-	build-sdaarch64|\
-	build-sdaarch64-installer|\
+	build-sd-aarch64|\
+	build-sd-aarch64-installer|\
 	build-vagrant-virtualbox|\
 	build-virtualbox|\
 	build-vm|\
