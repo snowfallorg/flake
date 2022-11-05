@@ -24,4 +24,5 @@ ${text_bold}OPTIONS${text_reset}
 
   --help, -h                Show this help message
   --debug                   Show debug messages
+  --show-trace              Show a trace when a Nix command fails
 "

@@ -106,6 +106,7 @@ positional_args=()
 
 opt_help=false
 opt_pick=false
+opt_show_trace=false
 opt_template=
 
 # Usage: missing_value <option>
@@ -132,6 +133,10 @@ while [[ $# > 0 ]]; do
 			opt_template="$2"
 			shift 2
 			;;
+		--show-trace)
+			opt_show_trace=true
+			shift
+			;;
 		--debug)
 			DEBUG=true
 			shift
@@ -152,6 +157,11 @@ while [[ $# > 0 ]]; do
 done
 
 passthrough_args=($@)
+show_trace=""
+
+if [[ "${opt_show_trace}" == true ]]; then
+	show_trace="--show-trace"
+fi
 
 #==============================#
 #          Helpers             #
@@ -323,12 +333,12 @@ flake_new() {
 
 		rewrite_line "$(log_info "Select a template: ${text_fg_blue}${template}${text_reset}")"
 		
-		nix flake new "${positional_args[1]}" --template "${template}"
+		nix flake new "${positional_args[1]}" --template "${template}" ${show_trace}
 	else
 		if [[ -z ${opt_template} ]]; then
-			nix flake new "${positional_args[1]}"
+			nix flake new "${positional_args[1]}" ${show_trace}
 		else
-			nix flake new "${positional_args[1]}" --template "${opt_template}"
+			nix flake new "${positional_args[1]}" --template "${opt_template}" ${show_trace}
 		fi
 	fi
 }
@@ -390,12 +400,12 @@ flake_init() {
 
 		rewrite_line "$(log_info "Select a template: ${text_fg_blue}${template}${text_reset}")"
 		
-		nix flake init --template "${template}"
+		nix flake init --template "${template}" ${show_trace}
 	else
 		if [[ -z ${opt_template} ]]; then
 			nix flake init
 		else
-			nix flake init --template "${opt_template}"
+			nix flake init --template "${opt_template}" ${show_trace}
 		fi
 	fi
 }
@@ -515,19 +525,19 @@ flake_build() {
 
 		rewrite_line "$(log_info "Select a package: ${text_fg_blue}${package}${text_reset}")"
 
-		nix build "${package}"
+		nix build "${package}" ${show_trace}
 	else
 		if [[ ${#positional_args[@]} == 1 ]]; then
 			require_flake_nix
-			nix build ".#"
+			nix build ".#" ${show_trace}
 		else
 			local package_name=${positional_args[1]}
 
 			if [[ "$package_name" == *:* ]] || [[ "$package_name" == *#* ]]; then
-				nix build "$package_name"
+				nix build "$package_name" ${show_trace}
 			else
 				require_flake_nix
-				nix build ".#${package_name}"
+				nix build ".#${package_name}" ${show_trace}
 			fi
 		fi
 	fi
@@ -597,7 +607,7 @@ flake_build_system() {
 			system_parts=($(split "$system" "nixosConfigurations."))
 			system="${system_parts[0]}${system_parts[1]:-}"
 
-			system-rebuild build-vm --flake "$system"
+			system-rebuild build-vm --flake "$system" ${show_trace}
 		elif [[ "${target}" == "nixos" ]] || [[ "${target}" == "darwin" ]]; then
 			local system_parts=()
 
@@ -607,18 +617,18 @@ flake_build_system() {
 			system_parts=($(split "$system" "darwinConfigurations."))
 			system="${system_parts[0]}${system_parts[1]:-}"
 
-			system-rebuild build --flake "$system"
+			system-rebuild build --flake "$system" ${show_trace}
 		else
-			nix build "$system"
+			nix build "$system" ${show_trace}
 		fi
 	else
 		if [[ ${#positional_args[@]} == 1 ]]; then
 			if [[ "${positional_args[0]}" == "build-nixos-vm" ]]; then
 				require_flake_nix
-				system-rebuild build-vm --flake ".#"
+				system-rebuild build-vm --flake ".#" ${show_trace}
 			elif [[ "${target}" == "nixos" ]] || [[ "${target}" == "darwin" ]]; then
 				require_flake_nix
-				system-rebuild build --flake ".#"
+				system-rebuild build --flake ".#" ${show_trace}
 			else
 				log_fatal "${text_bold}flake ${positional_args[0]}${text_reset} called without a name"
 			fi
@@ -627,16 +637,16 @@ flake_build_system() {
 
 			if [[ "$system_name" == *:* ]] || [[ "$system_name" == *#* ]]; then
 				if [[ "${positional_args[0]}" == "build-nixos-vm" ]]; then
-					system-rebuild build-vm --flake "$system_name"
+					system-rebuild build-vm --flake "$system_name" ${show_trace}
 				elif [[ "${target}" == "nixos" ]] || [[ "${target}" == "darwin" ]]; then
-					system-rebuild build --flake "$system_name"
+					system-rebuild build --flake "$system_name" ${show_trace}
 				else
 					local output_name_parts=($(split "$system_name" "#"))
 					local upstream_flake_uri=${output_name_parts[0]}
 					local output_name=${output_name_parts[1]:-}
 
 					if [[ -n ${output_name} ]]; then
-						nix build "${upstream_flake_uri}#${target}Configurations.${output_name}"
+						nix build "${upstream_flake_uri}#${target}Configurations.${output_name}" ${show_trace}
 					else
 						log_fatal "${text_bold}flake ${positional_args[0]}${text_reset} called without a name"
 					fi
@@ -644,13 +654,13 @@ flake_build_system() {
 			else
 				if [[ "${positional_args[0]}" == "build-nixos-vm" ]]; then
 					require_flake_nix
-					system-rebuild build-vm --flake ".#${system_name}"
+					system-rebuild build-vm --flake ".#${system_name}" ${show_trace}
 				elif [[ "${target}" == "nixos" ]] || [[ "${target}" == "darwin" ]]; then
 					require_flake_nix
-					system-rebuild build --flake ".#${system_name}"
+					system-rebuild build --flake ".#${system_name}" ${show_trace}
 				else
 					require_flake_nix
-					nix build ".#${target}Configurations.${system_name}"
+					nix build ".#${target}Configurations.${system_name}" ${show_trace}
 				fi
 			fi
 		fi
@@ -701,19 +711,19 @@ flake_dev() {
 
 		rewrite_line "$(log_info "Select a shell: ${text_fg_blue}${shell}${text_reset}")"
 
-		nix develop "${shell}"
+		nix develop "${shell}" ${show_trace}
 	else
 		if [[ ${#positional_args[@]} == 1 ]]; then
 			require_flake_nix
-			nix develop ".#"
+			nix develop ".#" ${show_trace}
 		else
 			local shell_name=${positional_args[1]}
 
 			if [[ "$shell_name" == *:* ]] || [[ "$shell_name" == *#* ]]; then
-				nix develop "$shell_name"
+				nix develop "$shell_name" ${show_trace}
 			else
 				require_flake_nix
-				nix develop ".#${shell_name}"
+				nix develop ".#${shell_name}" ${show_trace}
 			fi
 		fi
 	fi
@@ -763,19 +773,19 @@ flake_run() {
 
 		rewrite_line "$(log_info "Select an app: ${text_fg_blue}${shell}${text_reset}")"
 
-		nix run "${app}" -- ${passthrough_args[*]}
+		nix run "${app}" ${show_trace} -- ${passthrough_args[*]}
 	else
 		if [[ ${#positional_args[@]} == 1 ]]; then
 			require_flake_nix
-			nix run ".#" -- ${passthrough_args[*]}
+			nix run ".#" ${show_trace} -- ${passthrough_args[*]}
 		else
 			local shell_name=${positional_args[1]}
 
 			if [[ "$shell_name" == *:* ]] || [[ "$shell_name" == *#* ]]; then
-				nix run "$shell_name" -- ${passthrough_args[*]}
+				nix run "$shell_name" ${show_trace} -- ${passthrough_args[*]}
 			else
 				require_flake_nix
-				nix run ".#${shell_name}" -- ${passthrough_args[*]}
+				nix run ".#${shell_name}" ${show_trace} -- ${passthrough_args[*]}
 			fi
 		fi
 	fi
