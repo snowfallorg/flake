@@ -47,7 +47,7 @@ You can install this package by adding it as an input to your Nix Flake.
 
 		snowfall-flake = {
 			url = "github:snowfallorg/flake";
-			# Frost requires some packages that aren't on 22.05, but are available on unstable.
+			# Flake requires some packages that aren't on 22.05, but are available on unstable.
 			inputs.nixpkgs.follows = "unstable";
 		};
 	};
