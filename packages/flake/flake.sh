@@ -880,7 +880,7 @@ flake_option() {
 		local flake_uri=${positional_args[1]:-}
 		local flake_parts=($(split "$flake_uri" "#"))
 
-		local flake_target="${flake_parts[0]}"
+		local flake_target="${flake_parts[0]:-"$(pwd)"}"
 
 		if [[ -z "${flake_uri}" ]]; then
 			require_flake_nix
