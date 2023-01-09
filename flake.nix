@@ -2,25 +2,27 @@
   description = "My Nix packages";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    unstable.url = "github:nixos/nixpkgs";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-22.11";
+    unstable.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    snowfall = {
-      url = "github:snowfallorg/lib";
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
+
+    snowfall-lib = {
+      url = "github:snowfallorg/lib/dev";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
   outputs = inputs:
-    inputs.snowfall.mkFlake {
+    inputs.snowfall-lib.mkFlake {
       inherit inputs;
-
       src = ./.;
 
       overlay-package-namespace = "snowfallorg";
 
-      outputs-builder = channels: {
-        packages.default = "flake";
-      };
+      alias.packages.default = "flake";
     };
 }

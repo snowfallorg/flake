@@ -241,6 +241,14 @@ prefix_each() {
 	echo "${results[*]}"
 }
 
+# Usage: join_by <delimiter> <data> <data> [...<data>]
+join_by() {
+  local d=${1-} f=${2-}
+  if shift 2; then
+    printf %s "$f" "${@/#/$d}"
+  fi
+}
+
 # Usage: privileged <command>
 privileged() {
 	cmd="$@"
@@ -266,6 +274,23 @@ system-rebuild() {
 		cmd="nixos-rebuild $@"
 		privileged $cmd
 	fi
+}
+
+# Usage: system_option <flake-uri> [hostname] [option]
+system_option() {
+	local flake_uri=$1
+	local system=${2:-"$(hostname)"}
+	local option=${3:-""}
+
+	local root="${flake_uri}"
+
+	if [[ "$flake_uri" == *:* ]]; then
+		root="$(nix eval --impure --raw --expr "(builtins.getFlake ${flake_uri}).outPath")"
+	fi
+
+	local prefix="(import @flakeCompat@ { src = ${root}; }).defaultNix.nixosConfigurations.${system}"
+
+	nixos-option --config_expr "${prefix}.config" --options_expr "${prefix}.options" "${option}"
 }
 
 #==============================#
@@ -841,6 +866,151 @@ flake_update() {
 	fi
 }
 
+flake_option() {
+	if [[ $opt_help == true ]]; then
+		show_help option
+		exit 0
+	fi
+
+	if [[ ${#positional_args[@]} > 3 ]]; then
+		log_fatal "${text_bold}flake option${text_reset} received too many positional arguments."
+	fi
+
+	if [[ $opt_pick == true ]]; then
+		local flake_uri=${positional_args[1]:-}
+		local flake_parts=($(split "$flake_uri" "#"))
+
+		local flake_target="${flake_parts[0]}"
+
+		if [[ -z "${flake_uri}" ]]; then
+			require_flake_nix
+			flake_uri="path:$(pwd)"
+		fi
+
+		if [[ "$flake_uri" == *#* ]]; then
+			log_fatal "${text_bold}flake build --pick${text_reset} called with invalid flake uri: $flake_uri"
+		fi
+
+		local target="nixos"
+
+		if [[ $is_darwin == true ]]; then
+			target="darwin"
+		fi
+
+		local raw_systems_choices=($(get_flake_attributes "${target}Configurations" "$flake_uri"))
+		local systems_choices=($(replace_each "path:$(pwd)" "." "${raw_systems_choices[*]}"))
+
+		if [[ ${#systems_choices[@]} == 0 ]]; then
+			log_fatal "Could not find any ${target} systems in flake: ${flake_uri}"
+		fi
+
+		log_info "Select a system:"
+		local system=$(gum choose \
+			--height=15 \
+			--cursor.foreground="4" \
+			--item.foreground="7" \
+			--selected.foreground="4" \
+			${systems_choices[*]} \
+		)
+
+		if [[ -z ${system} ]]; then
+			log_fatal "No system selected"
+		fi
+
+		rewrite_line "$(log_info "Select a system: ${text_fg_blue}${system}${text_reset}")"
+
+		local system_parts=($(split "${system}" "#"))
+		local system_name="${system_parts[1]}"
+
+		local option_path=()
+
+		log_info "Select an option..."
+		while true; do
+			local current_option_path=$(join_by "." ${option_path[@]})
+
+			local options_output=$(system_option "\"${flake_target}\"" "${system_name}" "${current_option_path}")
+
+			if [[ "${options_output}" == "This attribute set contains:"* ]]; then
+				# Listing options
+				local options=(${options_output#*$'\n'})
+
+				local option=
+
+				if [[ "${current_option_path}" != "" ]]; then
+					rewrite_line "$(log_info "Select an option: ${text_fg_blue}${current_option_path}${text_reset}")"
+					local option=$(gum choose \
+						--height=15 \
+						--cursor.foreground="4" \
+						--item.foreground="7" \
+						--selected.foreground="4" \
+						"⬅️  Back" \
+						${options[*]} \
+					)
+				else
+					rewrite_line "$(log_info "Select an option...")"
+					local option=$(gum choose \
+						--height=15 \
+						--cursor.foreground="4" \
+						--item.foreground="7" \
+						--selected.foreground="4" \
+						${options[*]} \
+					)
+				fi
+
+
+				if [ -z "${option}" ]; then
+					log_fatal "No option selected"
+				fi
+
+				if [[ "${option}" == "⬅️  Back" ]]; then
+					option_path=(${option_path[@]::$((${#option_path[@]} - 1))})
+				else
+					option_path+=("${option}")
+				fi
+			else
+				gum pager \
+					--border-foreground="4" \
+					--help.foreground="4" \
+					<<<"${current_option_path}"$'\n\n'"${options_output}"
+
+				option_path=(${option_path[@]::$((${#option_path[@]} - 1))})
+			fi
+		done
+	else
+		if [[ ${#positional_args[@]} == 1 ]]; then
+			require_flake_nix
+			log_info "Showing options for .#$(hostname)"
+			system_option "$(pwd)"
+		else
+			local system_name=${positional_args[1]:-""}
+
+			if [[ "$system_name" == *:* ]] || [[ "$system_name" == *#* ]]; then
+				local options=${positional_args[2]:-""}
+
+				local flake_parts=($(split "$system_name" "#"))
+
+				local flake_uri="${flake_parts[0]}"
+				local flake_hostname="${flake_parts[1]:-"$(hostname)"}"
+
+				log_info "Showing options for ${flake_uri}#${flake_hostname}"
+
+				system_option "\"${flake_uri}\"" "${flake_hostname}" "${options}"
+			else
+				require_flake_nix
+
+				if [[ ${#positional_args[@]} == 3 ]]; then
+					local options=${positional_args[2]:-""}
+					log_info "Showing options for .#$(hostname)"
+					system_option "$(pwd)" "${system_name}" "${options}"
+				else
+					log_info "Showing options for .#$(hostname)"
+					system_option "$(pwd)" "$(hostname)" "${system_name}"
+				fi
+			fi
+		fi
+	fi
+}
+
 #==============================#
 #          Execute             #
 #==============================#
@@ -916,6 +1086,10 @@ case ${positional_args[0]} in
 	update)
 		log_debug "Running subcommand: ${text_bold}flake_update${text_reset}"
 		flake_update
+		;;
+	option)
+		log_debug "Running subcommand: ${text_bold}flake_option${text_reset}"
+		flake_option
 		;;
 	*)
 		log_fatal "Unknown subcommand: ${text_bold}${positional_args[0]}${text_reset}"

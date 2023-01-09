@@ -1,4 +1,12 @@
-{ lib, writeShellApplication, gum, substituteAll, stdenvNoCC, ... }:
+{ lib
+, stdenvNoCC
+, substituteAll
+, gum
+, nixos-option
+, writeShellApplication
+, inputs
+, ...
+}:
 
 let
   substitute = args: builtins.readFile (substituteAll args);
@@ -28,6 +36,7 @@ writeShellApplication {
     src = ./flake.sh;
 
     inherit (stdenvNoCC) isDarwin;
+    flakeCompat = inputs.flake-compat;
     help = ./help;
   };
   checkPhase = "";
@@ -35,5 +44,6 @@ writeShellApplication {
     gum
     filter-flakes
     get-registry-flakes
+    nixos-option
   ];
 }
