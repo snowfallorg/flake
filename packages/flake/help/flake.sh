@@ -19,6 +19,7 @@ ${text_bold}COMMANDS${text_reset}
   switch                    Switch system configuration
   update                    Update flake inputs
   build-<target>            Build a target system, see ${text_bold}flake build-system --help${text_reset}
+  option                    Show NixOS options
 
 ${text_bold}OPTIONS${text_reset}
 

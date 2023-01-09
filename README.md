@@ -240,3 +240,55 @@ flake build-system github:jakehamilton/config --pick
 # Build a specific ISO from the flake in the current directory.
 flake build-iso my-iso-system
 ```
+
+### `flake option`
+
+Show NixOS options from Nix Flakes.
+
+```bash
+
+
+flake option
+
+DESCRIPTION
+
+  Show NixOS options from Nix Flakes.
+
+USAGE
+
+  flake option [option] [options]
+  flake option <hostname> [option] [options]
+  flake option <flake-uri> [option] [options]
+
+OPTIONS
+
+  --pick, -p                          Pick options from a list
+
+  --help, -h                          Show this help message
+  --debug                             Show debug messages
+  --show-trace                        Show a trace when a Nix command fails
+
+EXAMPLES
+
+  # Show options for the current host in the current directory.
+  $ flake option
+
+  # Show options for a specific host.
+  $ flake option my-host
+
+  # Show a specific option for a specific host.
+  $ flake option my-host services.openssh
+
+  # Show options for a flake's host.
+  $ flake option github:jakehamilton/config#bismuth
+
+  # Show a specific option for a flake's host.
+  $ flake option github:jakehamilton/config#bismuth services.openssh
+
+  # Pick options for the flake in the current directory.
+  $ flake option --pick
+
+  # Pick options from a specific flake.
+  $ flake option github:jakehamilton/config --pick
+
+```
