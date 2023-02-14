@@ -62,7 +62,7 @@ You can install this package by adding it as an input to your Nix Flake.
 				snowfall-flake.overlay
 
 				# There is also a named overlay, though the output is the same.
-				snowfall-flake.overlays."packages/flake"
+				snowfall-flake.overlays."package/flake"
 			];
 		};
 }
