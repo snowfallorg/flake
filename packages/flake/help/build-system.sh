@@ -41,8 +41,8 @@ ${text_bold}SUPPORTED TARGETS${text_reset}
   build-qcow                          qcow2 image
   build-raw                           Raw image with bios/mbr
   build-raw-efi                       Raw image with efi support
-  build-sdaarch64                     Like sd-aarch64-installer, but does not use default installer image config
-  build-sdaarch64-installer           Create an installer sd card for aarch64
+  build-sd-aarch64                    Like sd-aarch64-installer, but does not use default installer image config
+  build-sd-aarch64-installer          Create an installer sd card for aarch64
   build-vagrant-virtualbox            VirtualBox image for Vagrant
   build-virtualbox                    VirtualBox VM
   build-vm                            Only used as a qemu-kvm runner
