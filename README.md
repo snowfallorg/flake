@@ -31,7 +31,7 @@ nix profile install github:snowfallorg/flake
 
 You can install this package by adding it as an input to your Nix Flake.
 
-```bash
+```nix
 {
 	description = "My system flake";
 
