@@ -37,7 +37,7 @@ writeShellApplication {
 
     help = ./help;
     flakeCompat = inputs.flake-compat;
-    isDarwin = if stdenvNoCC.isDarwin == 1 then "true" else "false";
+    isDarwin = if stdenvNoCC.isDarwin then "true" else "false";
   };
   checkPhase = "";
   runtimeInputs = [
