@@ -35,9 +35,9 @@ writeShellApplication {
   text = substitute {
     src = ./flake.sh;
 
-    inherit (stdenvNoCC) isDarwin;
-    flakeCompat = inputs.flake-compat;
     help = ./help;
+    flakeCompat = inputs.flake-compat;
+    isDarwin = if stdenvNoCC.isDarwin == 1 then "true" else "false";
   };
   checkPhase = "";
   runtimeInputs = [
