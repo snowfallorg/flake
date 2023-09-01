@@ -269,7 +269,7 @@ privileged() {
 system-rebuild() {
 	if [[ "$is_darwin" == true ]]; then
 		cmd="darwin-rebuild $@"
-		privileged $cmd
+		$cmd
 	else
 		cmd="nixos-rebuild $@"
 		privileged $cmd
