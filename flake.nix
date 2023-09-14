@@ -2,8 +2,7 @@
   description = "Snowfall Flake";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-22.11";
-    unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
 
     flake-compat = {
       url = "github:edolstra/flake-compat";
@@ -11,7 +10,7 @@
     };
 
     snowfall-lib = {
-      url = "github:snowfallorg/lib/dev";
+      url = "github:snowfallorg/lib";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -21,7 +20,9 @@
       inherit inputs;
       src = ./.;
 
-      overlay-package-namespace = "snowfallorg";
+      snowfall = {
+        namespace = "snowfallorg";
+      };
 
       alias.packages.default = "flake";
     };
