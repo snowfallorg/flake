@@ -454,7 +454,7 @@ flake_switch() {
 		fi
 
 		if [[ "$flake_uri" != *:* ]] || [[ "$flake_uri" == *#* ]]; then
-			log_fatal "${text_bold}flake build --pick${text_reset} called with invalid flake uri: $flake_uri"
+			log_fatal "${text_bold}flake switch --pick${text_reset} called with invalid flake uri: $flake_uri"
 		fi
 
 		local target="nixos"
@@ -503,6 +503,174 @@ flake_switch() {
 				system-rebuild switch --flake ".#${system_name}"
 			fi
 		fi
+	fi
+}
+
+flake_test() {
+	if [[ $opt_help == true ]]; then
+		show_help test
+		exit 0
+	fi
+
+	if [[ ${#positional_args[@]} > 2 ]]; then
+		log_fatal "${text_bold}flake test${text_reset} received too many positional arguments."
+	fi
+
+	if [[ $opt_pick == true ]]; then
+		local flake_uri=${positional_args[1]:-}
+
+		if [[ -z "${flake_uri}" ]]; then
+			require_flake_nix
+			flake_uri="path:$(pwd)"
+		fi
+
+		if [[ "$flake_uri" != *:* ]] || [[ "$flake_uri" == *#* ]]; then
+			log_fatal "${text_bold}flake test --pick${text_reset} called with invalid flake uri: $flake_uri"
+		fi
+
+		local target="nixos"
+
+		if [[ $is_darwin == true ]]; then
+			target="darwin"
+		fi
+
+		local raw_systems_choices=($(get_flake_attributes "${target}Configurations" "$flake_uri"))
+		local systems_choices=($(replace_each "path:$(pwd)" "." "${raw_systems_choices[*]}"))
+
+		if [[ ${#systems_choices[@]} == 0 ]]; then
+			log_fatal "Could not find any ${target} systems in flake: ${flake_uri}"
+		fi
+
+		log_info "Select a system:"
+		local system=$(gum choose \
+			--height=15 \
+			--cursor.foreground="4" \
+			--item.foreground="7" \
+			--selected.foreground="4" \
+			${systems_choices[*]} \
+		)
+
+		if [[ -z ${system} ]]; then
+			log_fatal "No system selected"
+		fi
+
+		rewrite_line "$(log_info "Select a system: ${text_fg_blue}${system}${text_reset}")"
+
+		system-rebuild test --flake "${system}"
+	else
+		if [[ ${#positional_args[@]} == 1 ]]; then
+			require_flake_nix
+			log_info "Testing system configuration .#"
+			system-rebuild test --flake ".#"
+		else
+			local system_name=${positional_args[1]}
+
+			if [[ "$system_name" == *:* ]] || [[ "$system_name" == *#* ]]; then
+				log_info "Testing system configuration ${system_name}"
+				system-rebuild test --flake $system_name
+			else
+				require_flake_nix
+				log_info "Testing system configuration .#${system_name}"
+				system-rebuild test --flake ".#${system_name}"
+			fi
+		fi
+	fi
+}
+
+flake_boot() {
+	if [[ $is_darwin == true ]]; then
+		log_fatal "${text_bold}flake boot${text_reset} is only compatible with NixOS."
+		exit 1
+	fi
+
+	if [[ $opt_help == true ]]; then
+		show_help boot
+		exit 0
+	fi
+
+	if [[ ${#positional_args[@]} > 2 ]]; then
+		log_fatal "${text_bold}flake boot${text_reset} received too many positional arguments."
+	fi
+
+	if [[ $opt_pick == true ]]; then
+		local flake_uri=${positional_args[1]:-}
+
+		if [[ -z "${flake_uri}" ]]; then
+			require_flake_nix
+			flake_uri="path:$(pwd)"
+		fi
+
+		if [[ "$flake_uri" != *:* ]] || [[ "$flake_uri" == *#* ]]; then
+			log_fatal "${text_bold}flake boot --pick${text_reset} called with invalid flake uri: $flake_uri"
+		fi
+
+		local target="nixos"
+
+		if [[ $is_darwin == true ]]; then
+			target="darwin"
+		fi
+
+		local raw_systems_choices=($(get_flake_attributes "${target}Configurations" "$flake_uri"))
+		local systems_choices=($(replace_each "path:$(pwd)" "." "${raw_systems_choices[*]}"))
+
+		if [[ ${#systems_choices[@]} == 0 ]]; then
+			log_fatal "Could not find any ${target} systems in flake: ${flake_uri}"
+		fi
+
+		log_info "Select a system:"
+		local system=$(gum choose \
+			--height=15 \
+			--cursor.foreground="4" \
+			--item.foreground="7" \
+			--selected.foreground="4" \
+			${systems_choices[*]} \
+		)
+
+		if [[ -z ${system} ]]; then
+			log_fatal "No system selected"
+		fi
+
+		rewrite_line "$(log_info "Select a system: ${text_fg_blue}${system}${text_reset}")"
+
+		system-rebuild boot --flake "${system}"
+	else
+		if [[ ${#positional_args[@]} == 1 ]]; then
+			require_flake_nix
+			log_info "Testing system configuration .#"
+			system-rebuild boot --flake ".#"
+		else
+			local system_name=${positional_args[1]}
+
+			if [[ "$system_name" == *:* ]] || [[ "$system_name" == *#* ]]; then
+				log_info "Testing system configuration ${system_name}"
+				system-rebuild boot --flake $system_name
+			else
+				require_flake_nix
+				log_info "Testing system configuration .#${system_name}"
+				system-rebuild boot --flake ".#${system_name}"
+			fi
+		fi
+	fi
+}
+
+flake_show() {
+	if [[ $opt_help == true ]]; then
+		show_help show
+		exit 0
+	fi
+	echo args: ${#positional_args[@]}
+
+	if [[ ${#positional_args[@]} > 2 ]]; then
+		log_fatal "${text_bold}flake show${text_reset} received too many positional arguments."
+	fi
+
+	if [[ ${#positional_args[@]} == 1 ]]; then
+		require_flake_nix
+		log_debug "Showing flake .#"
+		nix flake show .#
+	else
+		log_debug "Showing flake ${positional_args[1]}"
+		nix flake show ${positional_args[1]}
 	fi
 }
 
@@ -1036,6 +1204,18 @@ case ${positional_args[0]} in
 	switch)
 		log_debug "Running subcommand: ${text_bold}flake_switch${text_reset}"
 		flake_switch
+		;;
+	test)
+		log_debug "Running subcommand: ${text_bold}flake_test${text_reset}"
+		flake_test
+		;;
+	boot)
+		log_debug "Running subcommand: ${text_bold}flake_boot${text_reset}"
+		flake_boot
+		;;
+	show)
+		log_debug "Running subcommand: ${text_bold}flake_show${text_reset}"
+		flake_show
 		;;
 	build)
 		log_debug "Running subcommand: ${text_bold}flake_build${text_reset}"

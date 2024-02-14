@@ -197,6 +197,114 @@ flake switch github:jakehamilton/config#bismuth
 flake switch github:jakehamilton/config --pick
 ```
 
+### `flake test`
+
+Test a system configuration
+
+```bash
+flake test
+
+DESCRIPTION
+
+  Test a system configuration with support for both NixOS and nix-darwin.
+
+USAGE
+
+  $ flake test <name> [options]
+
+OPTIONS
+
+  --help, -h                          Show this help message
+  --debug                             Show debug messages
+  --show-trace                        Show a trace when a Nix command fails
+
+EXAMPLES
+
+  # Test a configuration with the same hostname from the flake in the current directory.
+  $ flake test
+
+  # Test a specific configuration from the flake in the current directory.
+  $ flake test my-system
+
+  # Pick a configuration to test from the flake in the current directory.
+  $ flake test --pick
+
+  # Test a configuration from a specific flake.
+  $ flake test github:jakehamilton/config#bismuth
+
+  # Pick configuration from a specific flake.
+  $ flake test github:jakehamilton/config --pick
+```
+
+### `flake boot`
+
+Update the system's bootable generations.
+
+```bash
+flake boot
+
+DESCRIPTION
+
+  Set a NixOS configuration as the bootable system.
+
+USAGE
+
+  $ flake boot <name> [options]
+
+OPTIONS
+
+  --help, -h                          Show this help message
+  --debug                             Show debug messages
+  --show-trace                        Show a trace when a Nix command fails
+
+EXAMPLES
+
+  # Boot a configuration with the same hostname from the flake in the current directory.
+  $ flake boot
+
+  # Boot a specific configuration from the flake in the current directory.
+  $ flake boot my-system
+
+  # Pick a configuration to boot from the flake in the current directory.
+  $ flake boot --pick
+
+  # Boot a configuration from a specific flake.
+  $ flake boot github:jakehamilton/config#bismuth
+
+  # Pick configuration from a specific flake.
+  $ flake boot github:jakehamilton/config --pick
+```
+
+### `flake show`
+
+Show flake outputs.
+
+```bash
+flake show
+
+DESCRIPTION
+
+  Show the outputs of a Nix Flake.
+
+USAGE
+
+  $ flake show <name> [options]
+
+OPTIONS
+
+  --help, -h                          Show this help message
+  --debug                             Show debug messages
+  --show-trace                        Show a trace when a Nix command fails
+
+EXAMPLES
+
+  # Show outputs from the flake in the current directory.
+  $ flake show
+
+  # Show outputs from a specific flake.
+  $ flake show github:jakehamilton/config
+```
+
 ### `flake update`
 
 Update a Nix Flake's inputs.
