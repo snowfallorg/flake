@@ -653,6 +653,27 @@ flake_boot() {
 	fi
 }
 
+flake_show() {
+	if [[ $opt_help == true ]]; then
+		show_help show
+		exit 0
+	fi
+	echo args: ${#positional_args[@]}
+
+	if [[ ${#positional_args[@]} > 2 ]]; then
+		log_fatal "${text_bold}flake show${text_reset} received too many positional arguments."
+	fi
+
+	if [[ ${#positional_args[@]} == 1 ]]; then
+		require_flake_nix
+		log_debug "Showing flake .#"
+		nix flake show .#
+	else
+		log_debug "Showing flake ${positional_args[1]}"
+		nix flake show ${positional_args[1]}
+	fi
+}
+
 flake_build() {
 	if [[ $opt_help == true ]]; then
 		show_help build
@@ -1193,8 +1214,8 @@ case ${positional_args[0]} in
 		flake_boot
 		;;
 	show)
-		log_debug "Running subcommand: ${text_bold}flake_switch${text_reset}"
-		flake_switch
+		log_debug "Running subcommand: ${text_bold}flake_show${text_reset}"
+		flake_show
 		;;
 	build)
 		log_debug "Running subcommand: ${text_bold}flake_build${text_reset}"
