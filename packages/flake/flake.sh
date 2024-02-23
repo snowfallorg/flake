@@ -1022,14 +1022,14 @@ flake_update() {
 
 		rewrite_line "$(log_info "Select inputs to update: ${text_fg_blue}${inputs//$'\n'/, }${text_reset}")"
 
-		nix flake lock $(prefix_each "--update-input" "${inputs}")
+		nix flake update ${inputs[*]}
 	else
 		if [[ ${#positional_args[@]} == 1 ]]; then
 			nix flake update
 		else
 			local inputs=("${positional_args[@]:1}")
 
-			nix flake lock $(prefix_each "--update-input" "${inputs[*]}")
+			nix flake update ${inputs[*]}
 		fi
 	fi
 }
