@@ -658,7 +658,6 @@ flake_show() {
 		show_help show
 		exit 0
 	fi
-	echo args: ${#positional_args[@]}
 
 	if [[ ${#positional_args[@]} > 2 ]]; then
 		log_fatal "${text_bold}flake show${text_reset} received too many positional arguments."
