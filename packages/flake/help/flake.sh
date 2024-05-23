@@ -20,6 +20,7 @@ ${text_bold}COMMANDS${text_reset}
   test                      Test a system configuration
   boot                      Update the system's bootable generations
   show                      Show flake outputs
+  check                     Run checks
   update                    Update flake inputs
   build-<target>            Build a target system, see ${text_bold}flake build-system --help${text_reset}
   option                    Show NixOS options

@@ -107,6 +107,7 @@ positional_args=()
 opt_help=false
 opt_pick=false
 opt_show_trace=false
+opt_all_systems=false
 opt_template=
 
 # Usage: missing_value <option>
@@ -133,6 +134,10 @@ while [[ $# > 0 ]]; do
 			opt_template="$2"
 			shift 2
 			;;
+		-a|--all-systems)
+			opt_all_systems=true
+			shift
+			;;
 		--show-trace)
 			opt_show_trace=true
 			shift
@@ -158,9 +163,14 @@ done
 
 passthrough_args=($@)
 show_trace=""
+all_systems=""
 
 if [[ "${opt_show_trace}" == true ]]; then
 	show_trace="--show-trace"
+fi
+
+if [[ "${opt_all_systems}" == true ]]; then
+	all_systems="--all-systems"
 fi
 
 #==============================#
@@ -358,11 +368,14 @@ flake_new() {
 
 		rewrite_line "$(log_info "Select a template: ${text_fg_blue}${template}${text_reset}")"
 		
+		log_info "Creating new flake ${positional_args[1]} from template ${template}"
 		nix flake new "${positional_args[1]}" --template "${template}" ${show_trace}
 	else
 		if [[ -z ${opt_template} ]]; then
+			log_info "Creating new flake ${positional_args[1]}"
 			nix flake new "${positional_args[1]}" ${show_trace}
 		else
+			log_info "Creating new flake ${positional_args[1]} from template ${opt_template}"
 			nix flake new "${positional_args[1]}" --template "${opt_template}" ${show_trace}
 		fi
 	fi
@@ -425,11 +438,14 @@ flake_init() {
 
 		rewrite_line "$(log_info "Select a template: ${text_fg_blue}${template}${text_reset}")"
 		
+		log_info "Creating new flake from template ${template}"
 		nix flake init --template "${template}" ${show_trace}
 	else
 		if [[ -z ${opt_template} ]]; then
+			log_info "Creating new flake"
 			nix flake init
 		else
+			log_info "Creating new flake from template ${opt_template}"
 			nix flake init --template "${opt_template}" ${show_trace}
 		fi
 	fi
@@ -636,17 +652,17 @@ flake_boot() {
 	else
 		if [[ ${#positional_args[@]} == 1 ]]; then
 			require_flake_nix
-			log_info "Testing system configuration .#"
+			log_info "Updating boot system configuration .#"
 			system-rebuild boot --flake ".#"
 		else
 			local system_name=${positional_args[1]}
 
 			if [[ "$system_name" == *:* ]] || [[ "$system_name" == *#* ]]; then
-				log_info "Testing system configuration ${system_name}"
+				log_info "Updating boot system configuration ${system_name}"
 				system-rebuild boot --flake $system_name
 			else
 				require_flake_nix
-				log_info "Testing system configuration .#${system_name}"
+				log_info "Updating boot system configuration .#${system_name}"
 				system-rebuild boot --flake ".#${system_name}"
 			fi
 		fi
@@ -665,10 +681,10 @@ flake_show() {
 
 	if [[ ${#positional_args[@]} == 1 ]]; then
 		require_flake_nix
-		log_debug "Showing flake .#"
+		log_info "Showing flake .#"
 		nix flake show .#
 	else
-		log_debug "Showing flake ${positional_args[1]}"
+		log_info "Showing flake ${positional_args[1]}"
 		nix flake show ${positional_args[1]}
 	fi
 }
@@ -717,18 +733,22 @@ flake_build() {
 
 		rewrite_line "$(log_info "Select a package: ${text_fg_blue}${package}${text_reset}")"
 
+		log_info "Building package ${package}"
 		nix build "${package}" ${show_trace}
 	else
 		if [[ ${#positional_args[@]} == 1 ]]; then
 			require_flake_nix
+			log_info "Building flake .#"
 			nix build ".#" ${show_trace}
 		else
 			local package_name=${positional_args[1]}
 
 			if [[ "$package_name" == *:* ]] || [[ "$package_name" == *#* ]]; then
+				log_info "Building package ${package_name}"
 				nix build "$package_name" ${show_trace}
 			else
 				require_flake_nix
+				log_info "Building package .#${package_name}"
 				nix build ".#${package_name}" ${show_trace}
 			fi
 		fi
@@ -799,6 +819,7 @@ flake_build_system() {
 			system_parts=($(split "$system" "nixosConfigurations."))
 			system="${system_parts[0]}${system_parts[1]:-}"
 
+			log_info "Building NixOS VM ${system}"
 			system-rebuild build-vm --flake "$system" ${show_trace}
 		elif [[ "${target}" == "nixos" ]] || [[ "${target}" == "darwin" ]]; then
 			local system_parts=()
@@ -809,17 +830,21 @@ flake_build_system() {
 			system_parts=($(split "$system" "darwinConfigurations."))
 			system="${system_parts[0]}${system_parts[1]:-}"
 
+			log_info "Building system ${system}"
 			system-rebuild build --flake "$system" ${show_trace}
 		else
+			log_info "Building ${system}"
 			nix build "$system" ${show_trace}
 		fi
 	else
 		if [[ ${#positional_args[@]} == 1 ]]; then
 			if [[ "${positional_args[0]}" == "build-nixos-vm" ]]; then
 				require_flake_nix
+				log_info "Building NixOS VM .#"
 				system-rebuild build-vm --flake ".#" ${show_trace}
 			elif [[ "${target}" == "nixos" ]] || [[ "${target}" == "darwin" ]]; then
 				require_flake_nix
+				log_info "Building system .#"
 				system-rebuild build --flake ".#" ${show_trace}
 			else
 				log_fatal "${text_bold}flake ${positional_args[0]}${text_reset} called without a name"
@@ -829,8 +854,10 @@ flake_build_system() {
 
 			if [[ "$system_name" == *:* ]] || [[ "$system_name" == *#* ]]; then
 				if [[ "${positional_args[0]}" == "build-nixos-vm" ]]; then
+					log_info "Building NixOS VM ${system_name}"
 					system-rebuild build-vm --flake "$system_name" ${show_trace}
 				elif [[ "${target}" == "nixos" ]] || [[ "${target}" == "darwin" ]]; then
+					log_info "Building system ${system_name}"
 					system-rebuild build --flake "$system_name" ${show_trace}
 				else
 					local output_name_parts=($(split "$system_name" "#"))
@@ -838,6 +865,7 @@ flake_build_system() {
 					local output_name=${output_name_parts[1]:-}
 
 					if [[ -n ${output_name} ]]; then
+						log_info "Building ${upstream_flake_uri}#${target}Configurations.${output_name}"
 						nix build "${upstream_flake_uri}#${target}Configurations.${output_name}" ${show_trace}
 					else
 						log_fatal "${text_bold}flake ${positional_args[0]}${text_reset} called without a name"
@@ -846,12 +874,15 @@ flake_build_system() {
 			else
 				if [[ "${positional_args[0]}" == "build-nixos-vm" ]]; then
 					require_flake_nix
+					log_info "Building NixOS VM .#${system_name}"
 					system-rebuild build-vm --flake ".#${system_name}" ${show_trace}
 				elif [[ "${target}" == "nixos" ]] || [[ "${target}" == "darwin" ]]; then
 					require_flake_nix
+					log_info "Building system .#${system_name}"
 					system-rebuild build --flake ".#${system_name}" ${show_trace}
 				else
 					require_flake_nix
+					log_info "Building .#${target}Configurations.${system_name}"
 					nix build ".#${target}Configurations.${system_name}" ${show_trace}
 				fi
 			fi
@@ -866,7 +897,7 @@ flake_dev() {
 	fi
 
 	if [[ ${#positional_args[@]} > 2 ]]; then
-		log_fatal "${text_bold}flake build${text_reset} received too many positional arguments."
+		log_fatal "${text_bold}flake dev${text_reset} received too many positional arguments."
 	fi
 
 	if [[ ${opt_pick} == true ]]; then
@@ -878,7 +909,7 @@ flake_dev() {
 		fi
 
 		if [[ "$flake_uri" != *:* ]] || [[ "$flake_uri" == *#* ]]; then
-			log_fatal "${text_bold}flake build --pick${text_reset} called with invalid flake uri: $flake_uri"
+			log_fatal "${text_bold}flake dev --pick${text_reset} called with invalid flake uri: $flake_uri"
 		fi
 
 		local raw_shells_choices=($(get_flake_attributes devShells "$flake_uri"))
@@ -903,18 +934,22 @@ flake_dev() {
 
 		rewrite_line "$(log_info "Select a shell: ${text_fg_blue}${shell}${text_reset}")"
 
+		log_info "Running shell ${shell}"
 		nix develop "${shell}" ${show_trace}
 	else
 		if [[ ${#positional_args[@]} == 1 ]]; then
 			require_flake_nix
+			log_info "Running shell .#"
 			nix develop ".#" ${show_trace}
 		else
 			local shell_name=${positional_args[1]}
 
 			if [[ "$shell_name" == *:* ]] || [[ "$shell_name" == *#* ]]; then
+				log_info "Running shell ${shell_name}"
 				nix develop "$shell_name" ${show_trace}
 			else
 				require_flake_nix
+				log_info "Running shell .#${shell_name}"
 				nix develop ".#${shell_name}" ${show_trace}
 			fi
 		fi
@@ -928,7 +963,7 @@ flake_run() {
 	fi
 
 	if [[ ${#positional_args[@]} > 2 ]]; then
-		log_fatal "${text_bold}flake build${text_reset} received too many positional arguments."
+		log_fatal "${text_bold}flake run${text_reset} received too many positional arguments."
 	fi
 
 	if [[ ${opt_pick} == true ]]; then
@@ -940,7 +975,7 @@ flake_run() {
 		fi
 
 		if [[ "$flake_uri" != *:* ]] || [[ "$flake_uri" == *#* ]]; then
-			log_fatal "${text_bold}flake build --pick${text_reset} called with invalid flake uri: $flake_uri"
+			log_fatal "${text_bold}flake run --pick${text_reset} called with invalid flake uri: $flake_uri"
 		fi
 
 		local raw_apps_choices=($(get_flake_attributes apps "$flake_uri"))
@@ -969,14 +1004,17 @@ flake_run() {
 	else
 		if [[ ${#positional_args[@]} == 1 ]]; then
 			require_flake_nix
+			log_info "Running app .#"
 			nix run ".#" ${show_trace} -- ${passthrough_args[*]}
 		else
 			local shell_name=${positional_args[1]}
 
 			if [[ "$shell_name" == *:* ]] || [[ "$shell_name" == *#* ]]; then
+				log_info "Running app ${shell_name}"
 				nix run "$shell_name" ${show_trace} -- ${passthrough_args[*]}
 			else
 				require_flake_nix
+				log_info "Running app .#${shell_name}"
 				nix run ".#${shell_name}" ${show_trace} -- ${passthrough_args[*]}
 			fi
 		fi
@@ -1024,10 +1062,12 @@ flake_update() {
 		nix flake update ${inputs[*]}
 	else
 		if [[ ${#positional_args[@]} == 1 ]]; then
+			log_info "Updating flake .#"
 			nix flake update
 		else
 			local inputs=("${positional_args[@]:1}")
 
+			log_info "Updating flake .# inputs: ${inputs[*]}"
 			nix flake update ${inputs[*]}
 		fi
 	fi
@@ -1178,6 +1218,71 @@ flake_option() {
 	fi
 }
 
+flake_check() {
+	if [[ $opt_help == true ]]; then
+		show_help check
+		exit 0
+	fi
+
+	if [[ ${#positional_args[@]} > 2 ]]; then
+		log_fatal "${text_bold}flake check${text_reset} received too many positional arguments."
+	fi
+
+	if [[ ${opt_pick} == true ]]; then
+		local flake_uri=${positional_args[1]:-}
+
+		if [[ -z "${flake_uri}" ]]; then
+			require_flake_nix
+			flake_uri="path:$(pwd)"
+		fi
+
+		if [[ "$flake_uri" != *:* ]] || [[ "$flake_uri" == *#* ]]; then
+			log_fatal "${text_bold}flake check --pick${text_reset} called with invalid flake uri: $flake_uri"
+		fi
+
+		local raw_checks_choices=($(get_flake_attributes checks "$flake_uri"))
+		local checks_choices=($(replace_each "path:$(pwd)" "." "${raw_checks_choices[*]}"))
+
+		if [[ ${#checks_choices[@]} == 0 ]]; then
+			log_fatal "Could not find any checks in flake: ${flake_uri}"
+		fi
+
+		log_info "Select a check:"
+		local check=$(gum choose \
+			--height=15 \
+			--cursor.foreground="4" \
+			--item.foreground="7" \
+			--selected.foreground="4" \
+			${checks_choices[*]} \
+		)
+
+		if [[ -z ${check} ]]; then
+			log_fatal "No check selected"
+		fi
+
+		rewrite_line "$(log_info "Select a check: ${text_fg_blue}${check}${text_reset}")"
+
+		nix flake check "${check}" ${show_trace} ${all_systems}
+	else
+		if [[ ${#positional_args[@]} == 1 ]]; then
+			require_flake_nix
+			log_info "Checking flake .#"
+			nix flake check ".#" ${show_trace} ${all_systems}
+		else
+			local check_name=${positional_args[1]}
+
+			if [[ "$check_name" == *:* ]] || [[ "$check_name" == *#* ]]; then
+				log_info "Checking flake ${check_name}"
+				nix flake check "$check_name" ${show_trace} ${all_systems}
+			else
+				require_flake_nix
+				log_info "Checking flake .#${check_name}"
+				nix flake check ".#${check_name}" ${show_trace} ${all_systems}
+			fi
+		fi
+	fi
+}
+
 #==============================#
 #          Execute             #
 #==============================#
@@ -1219,6 +1324,10 @@ case ${positional_args[0]} in
 	build)
 		log_debug "Running subcommand: ${text_bold}flake_build${text_reset}"
 		flake_build
+		;;
+	check)
+		log_debug "Running subcommand: ${text_bold}flake_check${text_reset}"
+		flake_check
 		;;
 	build-nixos|\
 	build-nixos-vm|\
