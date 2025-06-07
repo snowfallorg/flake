@@ -1,6 +1,6 @@
 { lib
 , stdenvNoCC
-, substituteAll
+, replaceVarsWith
 , gum
 , nixos-option
 , writeShellApplication
@@ -9,7 +9,7 @@
 }:
 
 let
-  substitute = args: builtins.readFile (substituteAll args);
+  substitute = args: builtins.readFile (replaceVarsWith args);
 
   filter-flake = writeShellApplication {
     name = "filter-flake";
@@ -35,9 +35,11 @@ writeShellApplication {
   text = substitute {
     src = ./flake.sh;
 
-    help = ./help;
-    flakeCompat = inputs.flake-compat;
-    isDarwin = if stdenvNoCC.isDarwin then "true" else "false";
+    replacements = {
+      help = ./help;
+      flakeCompat = inputs.flake-compat;
+      isDarwin = if stdenvNoCC.isDarwin then "true" else "false";
+    };
   };
   checkPhase = "";
   runtimeInputs = [
